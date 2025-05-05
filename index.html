@@ -29,7 +29,7 @@
     <button onclick="smite()">⚡ Smite</button>
     <button onclick="createLand()">🌍 Create Land</button>
     <button onclick="disaster()">🔥 Disaster</button>
-    <button onclick="generateWorld()">🌍 Generate World</button> <!-- New button -->
+    <button onclick="generateWorld()">🌍 Generate World</button>
     <div>👥 Population: <span id="populationCount">0</span></div>
   </div>
   <canvas id="world"></canvas>
@@ -47,10 +47,9 @@
     const buildings = [];
     const simplex = new SimplexNoise(Math.random);
 
-    // Initialize canvas and grid size on window load
+    // Initialize the canvas and grid when the page is loaded
     function initialize() {
-      resizeCanvas(); // Calculate canvas size
-      generateWorld(); // Generate world once everything is initialized
+      resizeCanvas(); // Recalculate canvas size and grid size
     }
 
     // Resize canvas and recalculate grid
@@ -61,12 +60,12 @@
       rows = Math.floor(canvas.height / cellSize);
     }
 
-    // Generate world when triggered by button click
+    // Generate world and spawn people
     function generateWorld() {
-      resizeCanvas(); // Ensure canvas size is recalculated
-      terrain.length = 0; // Clear previous terrain
+      resizeCanvas(); // Ensure canvas and grid are resized first
+      terrain.length = 0; // Reset the terrain
 
-      const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
+      const scale = 0.05 + Math.random() * 0.05; // Randomize scale for terrain
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
@@ -74,12 +73,12 @@
           terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp values
         }
       }
-      spawnPeople();
-      updatePopulationCount();
-      drawWorld();
+      spawnPeople(); // Spawn people after the world is generated
+      updatePopulationCount(); // Update population display
+      drawWorld(); // Draw the world on canvas
     }
 
-    // Terrain Color based on noise value
+    // Generate terrain color based on noise value
     function getTerrainColor(value) {
       if (value < 0.2) return "#004488";     // Water
       if (value < 0.3) return "#c2b280";     // Sand
@@ -95,7 +94,7 @@
 
     // Spawn people at random walkable spots
     function spawnPeople(count = 200) {
-      people.length = 0; // Reset the people
+      people.length = 0; // Reset people list
       for (let i = 0; i < count; i++) {
         let x, y;
         do {
@@ -112,7 +111,7 @@
       document.getElementById("populationCount").textContent = people.length;
     }
 
-    // Bless: add special buildings (for example)
+    // Bless: Add special buildings (for example)
     function bless() {
       people.forEach(p => {
         if (Math.random() < 0.1) {
@@ -121,7 +120,7 @@
       });
     }
 
-    // Smite: remove people from the world randomly
+    // Smite: Remove people from the world randomly
     function smite() {
       for (let i = 0; i < 30 && people.length > 0; i++) {
         const index = Math.floor(Math.random() * people.length);
@@ -130,7 +129,7 @@
       updatePopulationCount();
     }
 
-    // Create Land: add more grass in random locations
+    // Create Land: Add more grass in random locations
     function createLand() {
       for (let i = 0; i < 50; i++) {
         const x = Math.floor(Math.random() * cols);
@@ -139,7 +138,7 @@
       }
     }
 
-    // Disaster: turn people into water, making it impassable
+    // Disaster: Turn people into water, making it impassable
     function disaster() {
       for (let i = 0; i < 50 && people.length > 0; i++) {
         const index = Math.floor(Math.random() * people.length);
@@ -175,7 +174,7 @@
     }
 
     // Start the game loop after the world is generated
-    window.onload = initialize;
+    window.onload = initialize; // Initialize on load
   </script>
 </body>
 </html>
