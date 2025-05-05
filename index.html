@@ -38,19 +38,23 @@
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     const cellSize = 4;
-    const cols = Math.floor(canvas.width / cellSize);
-    const rows = Math.floor(canvas.height / cellSize);
+    let cols = Math.floor(canvas.width / cellSize);
+    let rows = Math.floor(canvas.height / cellSize);
 
     const terrain = [];
     const people = [];
     const villages = [];
     const buildings = [];
 
-    const simplex = new SimplexNoise(Math.random); // Different terrain each load
+    const simplex = new SimplexNoise(Math.random);
 
     function getTerrainColor(value) {
       if (value < 0.2) return "#004488";     // Water
@@ -61,11 +65,12 @@
     }
 
     function generateWorld() {
-      const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
+      const scale = 0.05 + Math.random() * 0.05;
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
-          const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
+          let value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
+          value = Math.max(0, Math.min(1, value)); // clamp
           terrain[y][x] = value;
         }
       }
