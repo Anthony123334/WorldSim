@@ -36,7 +36,7 @@
 
   <!-- Load SimplexNoise library from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js" defer></script>
-  
+
   <script>
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
@@ -59,6 +59,10 @@
 
     // Initialize SimplexNoise instance
     function initSimplexNoise() {
+      if (typeof SimplexNoise === 'undefined') {
+        console.error('SimplexNoise is not loaded!');
+        return;
+      }
       simplex = new SimplexNoise(Math.random);  // Initialize SimplexNoise with a random seed
     }
 
@@ -200,6 +204,10 @@
 
     // Start the world generation when the page loads
     window.onload = () => {
+      if (typeof SimplexNoise === 'undefined') {
+        console.error('SimplexNoise is not available!');
+        return;
+      }
       generateWorld();
       gameLoop();  // Start the game loop
     };
