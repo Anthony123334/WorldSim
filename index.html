@@ -39,7 +39,8 @@
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
 
-    let cols, rows, cellSize = 4;
+    let cellSize = 4;
+    let cols, rows;
     const terrain = [];
     const people = [];
     const villages = [];
@@ -57,22 +58,15 @@
     // Trigger world generation on resize or button click
     window.addEventListener('resize', () => {
       resizeCanvas();
-      generateWorld();
+      if (terrain.length > 0) { // Check if terrain is already generated
+        generateWorld();
+      }
     });
 
-    resizeCanvas();
-
-    // Terrain Color based on noise value
-    function getTerrainColor(value) {
-      if (value < 0.2) return "#004488";     // Water
-      if (value < 0.3) return "#c2b280";     // Sand
-      if (value < 0.6) return "#228B22";     // Grass
-      if (value < 0.8) return "#888888";     // Rock
-      return "#aaaaaa";                     // Mountain
-    }
-
-    // Generate random terrain using Simplex Noise
+    // Generate world when triggered by button click
     function generateWorld() {
+      resizeCanvas(); // Ensure canvas size is calculated before generating the world
+
       terrain.length = 0; // Clear previous terrain
       const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
       for (let y = 0; y < rows; y++) {
@@ -85,6 +79,15 @@
       spawnPeople();
       updatePopulationCount();
       drawWorld();
+    }
+
+    // Terrain Color based on noise value
+    function getTerrainColor(value) {
+      if (value < 0.2) return "#004488";     // Water
+      if (value < 0.3) return "#c2b280";     // Sand
+      if (value < 0.6) return "#228B22";     // Grass
+      if (value < 0.8) return "#888888";     // Rock
+      return "#aaaaaa";                     // Mountain
     }
 
     // Check if a terrain spot is walkable (grass or better)
