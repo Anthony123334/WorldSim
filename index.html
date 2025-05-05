@@ -41,6 +41,9 @@
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      cols = Math.floor(canvas.width / cellSize);
+      rows = Math.floor(canvas.height / cellSize);
+      generateWorld();
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
@@ -65,13 +68,12 @@
     }
 
     function generateWorld() {
-      const scale = 0.05 + Math.random() * 0.05;
+      const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
-          let value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
-          value = Math.max(0, Math.min(1, value)); // clamp
-          terrain[y][x] = value;
+          const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
+          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp the values
         }
       }
     }
