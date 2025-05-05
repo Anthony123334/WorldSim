@@ -29,6 +29,7 @@
     <button onclick="smite()">⚡ Smite</button>
     <button onclick="createLand()">🌍 Create Land</button>
     <button onclick="disaster()">🔥 Disaster</button>
+    <button onclick="generateWorld()">🌍 Generate World</button> <!-- New button for manual world generation -->
     <div>👥 Population: <span id="populationCount">0</span></div>
   </div>
   <canvas id="world"></canvas>
@@ -43,7 +44,7 @@
       canvas.height = window.innerHeight;
       cols = Math.floor(canvas.width / cellSize);
       rows = Math.floor(canvas.height / cellSize);
-      generateWorld();
+      generateWorld(); // Ensure world is generated when resizing
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
@@ -76,6 +77,7 @@
           terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp the values
         }
       }
+      spawnPeople(); // Spawn people after world generation
     }
 
     function isWalkable(x, y) {
@@ -208,8 +210,6 @@
       requestAnimationFrame(gameLoop);
     }
 
-    generateWorld();
-    spawnPeople();
     gameLoop();
   </script>
 </body>
