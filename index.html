@@ -2,135 +2,195 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Responsive World Simulation</title>
+  <title>God World Sim</title>
   <style>
     body {
       margin: 0;
+      overflow: hidden;
+      background: #000;
       font-family: sans-serif;
-      background: #eef;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
-    #controls {
-      margin: 10px;
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
     }
     button {
-      margin: 5px;
-      padding: 10px;
-      font-size: 16px;
-    }
-    canvas {
-      display: block;
-      border: 1px solid #333;
+      margin: 3px;
+      padding: 5px 10px;
     }
   </style>
 </head>
 <body>
-  <div id="controls">
+  <div id="ui">
     <button onclick="bless()">☀️ Bless</button>
     <button onclick="smite()">⚡ Smite</button>
-    <button onclick="grow()">🌱 Grow</button>
-    <button onclick="nextTurn()">⏭️ Next Turn</button>
+    <button onclick="createLand()">🌍 Create Land</button>
+    <button onclick="disaster()">🔥 Disaster</button>
   </div>
   <canvas id="world"></canvas>
 
   <script>
-    const canvas = document.getElementById('world');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("world");
+    const ctx = canvas.getContext("2d");
 
-    let cellSize = 25;
-    let cols, rows;
-    let world = [];
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 60; // leave room for controls
-      cols = Math.floor(canvas.width / cellSize);
-      rows = Math.floor(canvas.height / cellSize);
+    const cellSize = 4;
+    const cols = Math.floor(canvas.width / cellSize);
+    const rows = Math.floor(canvas.height / cellSize);
+
+    const terrain = [];
+    const people = [];
+    const villages = [];
+    const buildings = [];
+
+    function getTerrainColor(value) {
+      if (value < 0.2) return "#004488";     // Water
+      if (value < 0.3) return "#c2b280";     // Sand
+      if (value < 0.6) return "#228B22";     // Grass
+      if (value < 0.8) return "#888888";     // Rock
+      return "#aaaaaa";                     // Mountain
     }
 
-    function initWorld() {
-      world = [];
+    function generateWorld() {
       for (let y = 0; y < rows; y++) {
-        let row = [];
+        terrain[y] = [];
         for (let x = 0; x < cols; x++) {
-          row.push({
-            people: Math.random() < 0.3 ? Math.floor(Math.random() * 10) + 1 : 0,
-            blessed: false
-          });
+          terrain[y][x] = Math.random();
         }
-        world.push(row);
       }
     }
 
-    function drawWorld() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const cell = world[y][x];
-          ctx.fillStyle = cell.people > 0 ? (cell.blessed ? 'lightgreen' : 'lightblue') : '#ccc';
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+    function isWalkable(x, y) {
+      return terrain[y][x] >= 0.2;
+    }
 
-          if (cell.people > 0) {
-            ctx.fillStyle = 'black';
-            ctx.font = '12px sans-serif';
-            ctx.fillText(cell.people, x * cellSize + 5, y * cellSize + 17);
+    function spawnPeople(count = 200) {
+      for (let i = 0; i < count; i++) {
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * cols);
+          y = Math.floor(Math.random() * rows);
+        } while (!isWalkable(x, y));
+        people.push({ x, y });
+      }
+    }
+
+    function movePeople() {
+      for (let person of people) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1;
+        const nx = person.x + dx;
+        const ny = person.y + dy;
+
+        if (
+          nx >= 0 && nx < cols &&
+          ny >= 0 && ny < rows &&
+          isWalkable(nx, ny)
+        ) {
+          person.x = nx;
+          person.y = ny;
+
+          // Try to settle if many people nearby
+          if (!inVillage(person) && nearbyPeopleCount(nx, ny) > 6) {
+            formVillage(nx, ny);
           }
         }
+      }
+    }
+
+    function inVillage(p) {
+      return villages.some(v => Math.abs(v.x - p.x) < 5 && Math.abs(v.y - p.y) < 5);
+    }
+
+    function nearbyPeopleCount(x, y) {
+      return people.filter(p => Math.abs(p.x - x) <= 2 && Math.abs(p.y - y) <= 2).length;
+    }
+
+    function formVillage(x, y) {
+      const name = "Village " + (villages.length + 1);
+      villages.push({ x, y, name });
+      buildings.push({ x, y, type: "hut" });
+    }
+
+    function drawWorld() {
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          ctx.fillStyle = getTerrainColor(terrain[y][x]);
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    function drawPeople() {
+      for (let person of people) {
+        ctx.fillStyle = "#ff0055";
+        ctx.fillRect(person.x * cellSize + 1, person.y * cellSize + 1, 2, 2);
+      }
+    }
+
+    function drawVillages() {
+      ctx.font = "10px sans-serif";
+      ctx.fillStyle = "white";
+      for (let v of villages) {
+        ctx.fillText(v.name, v.x * cellSize, v.y * cellSize);
+      }
+    }
+
+    function drawBuildings() {
+      for (let b of buildings) {
+        ctx.fillStyle = b.type === "hut" ? "#964B00" : "#222";
+        ctx.fillRect(b.x * cellSize + 1, b.y * cellSize + 1, 3, 3);
       }
     }
 
     function bless() {
-      const x = Math.floor(Math.random() * cols);
-      const y = Math.floor(Math.random() * rows);
-      const cell = world[y][x];
-      cell.blessed = true;
-      if (cell.people > 0) {
-        cell.people += Math.floor(Math.random() * 5) + 1;
-      }
-      drawWorld();
+      people.forEach(p => {
+        if (Math.random() < 0.1) {
+          buildings.push({ x: p.x, y: p.y, type: "blessed" });
+        }
+      });
     }
 
     function smite() {
-      const x = Math.floor(Math.random() * cols);
-      const y = Math.floor(Math.random() * rows);
-      world[y][x].people = 0;
-      world[y][x].blessed = false;
-      drawWorld();
-    }
-
-    function grow() {
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const cell = world[y][x];
-          if (cell.people > 0 && Math.random() < 0.3) {
-            cell.people += 1;
-          }
-        }
+      for (let i = 0; i < 30; i++) {
+        const index = Math.floor(Math.random() * people.length);
+        people.splice(index, 1);
       }
-      drawWorld();
     }
 
-    function nextTurn() {
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          world[y][x].blessed = false;
-        }
+    function createLand() {
+      for (let i = 0; i < 50; i++) {
+        const x = Math.floor(Math.random() * cols);
+        const y = Math.floor(Math.random() * rows);
+        terrain[y][x] = 0.5; // Make it grass
       }
-      drawWorld();
     }
 
-    // Initialize
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      initWorld();
-      drawWorld();
-    });
+    function disaster() {
+      for (let i = 0; i < 50; i++) {
+        const index = Math.floor(Math.random() * people.length);
+        const p = people[index];
+        terrain[p.y][p.x] = 0.0; // Turn to water
+        people.splice(index, 1);
+      }
+    }
 
-    resizeCanvas();
-    initWorld();
-    drawWorld();
+    function gameLoop() {
+      drawWorld();
+      movePeople();
+      drawBuildings();
+      drawPeople();
+      drawVillages();
+      requestAnimationFrame(gameLoop);
+    }
+
+    generateWorld();
+    spawnPeople();
+    gameLoop();
   </script>
 </body>
 </html>
