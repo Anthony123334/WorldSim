@@ -34,25 +34,29 @@
   </div>
   <canvas id="world"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@3.0.0/simplex-noise.min.js"></script>
+  <!-- Include Simplex Noise Library with defer to ensure it's loaded before usage -->
+  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@3.0.0/simplex-noise.min.js" defer></script>
+
   <script>
+    let simplex;  // Declare the simplex variable first
+
+    // Declare necessary variables globally
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
 
     let cellSize = 4;
-    let cols, rows;
+    let cols, rows;  // These will be initialized later after canvas size is set
     const terrain = [];
     const people = [];
     const villages = [];
     const buildings = [];
-    const simplex = new SimplexNoise(Math.random);
 
-    // Initialize the canvas and grid when the page is loaded
-    function initialize() {
-      resizeCanvas(); // Recalculate canvas size and grid size
+    // Function to initialize SimplexNoise
+    function initSimplexNoise() {
+      simplex = new SimplexNoise(Math.random);  // Initialize after the script has loaded
     }
 
-    // Resize canvas and recalculate grid
+    // Function to resize the canvas and calculate grid size
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -60,31 +64,38 @@
       rows = Math.floor(canvas.height / cellSize);
     }
 
-    // Generate world and spawn people
+    // Function to generate a random world
     function generateWorld() {
-      resizeCanvas(); // Ensure canvas and grid are resized first
-      terrain.length = 0; // Reset the terrain
+      resizeCanvas();  // Ensure the canvas is resized first
+      if (!simplex) {
+        initSimplexNoise();  // Initialize SimplexNoise if it's not yet initialized
+      }
 
-      const scale = 0.05 + Math.random() * 0.05; // Randomize scale for terrain
+      terrain.length = 0;  // Reset terrain
+
+      const scale = 0.05 + Math.random() * 0.05;  // Randomize scale for terrain generation
+
+      // Generate terrain based on simplex noise
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
           const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
-          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp values
+          terrain[y][x] = Math.max(0, Math.min(1, value));  // Clamp values to be between 0 and 1
         }
       }
-      spawnPeople(); // Spawn people after the world is generated
-      updatePopulationCount(); // Update population display
-      drawWorld(); // Draw the world on canvas
+
+      spawnPeople();  // Spawn people after the world is generated
+      updatePopulationCount();  // Update population counter
+      drawWorld();  // Draw the world
     }
 
-    // Generate terrain color based on noise value
+    // Function to get the color of a terrain block
     function getTerrainColor(value) {
-      if (value < 0.2) return "#004488";     // Water
-      if (value < 0.3) return "#c2b280";     // Sand
-      if (value < 0.6) return "#228B22";     // Grass
-      if (value < 0.8) return "#888888";     // Rock
-      return "#aaaaaa";                     // Mountain
+      if (value < 0.2) return "#004488";  // Water
+      if (value < 0.3) return "#c2b280";  // Sand
+      if (value < 0.6) return "#228B22";  // Grass
+      if (value < 0.8) return "#888888";  // Rock
+      return "#aaaaaa";  // Mountain
     }
 
     // Check if a terrain spot is walkable (grass or better)
@@ -94,19 +105,21 @@
 
     // Spawn people at random walkable spots
     function spawnPeople(count = 200) {
-      people.length = 0; // Reset people list
+      people.length = 0;  // Reset the people list
+
       for (let i = 0; i < count; i++) {
         let x, y;
         do {
           x = Math.floor(Math.random() * cols);
           y = Math.floor(Math.random() * rows);
-        } while (!isWalkable(x, y));
+        } while (!isWalkable(x, y));  // Only spawn on walkable terrain
         people.push({ x, y });
       }
+
       updatePopulationCount();
     }
 
-    // Update population counter
+    // Update population counter on UI
     function updatePopulationCount() {
       document.getElementById("populationCount").textContent = people.length;
     }
@@ -134,7 +147,7 @@
       for (let i = 0; i < 50; i++) {
         const x = Math.floor(Math.random() * cols);
         const y = Math.floor(Math.random() * rows);
-        terrain[y][x] = 0.5; // Turn terrain into grass
+        terrain[y][x] = 0.5;  // Make terrain grass
       }
     }
 
@@ -143,7 +156,7 @@
       for (let i = 0; i < 50 && people.length > 0; i++) {
         const index = Math.floor(Math.random() * people.length);
         const p = people[index];
-        terrain[p.y][p.x] = 0.0; // Turn to water
+        terrain[p.y][p.x] = 0.0;  // Turn terrain into water
         people.splice(index, 1);
       }
       updatePopulationCount();
@@ -174,7 +187,7 @@
     }
 
     // Start the game loop after the world is generated
-    window.onload = initialize; // Initialize on load
+    window.onload = () => generateWorld();  // Generate world immediately on load
   </script>
 </body>
 </html>
