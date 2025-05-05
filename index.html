@@ -47,6 +47,12 @@
     const buildings = [];
     const simplex = new SimplexNoise(Math.random);
 
+    // Initialize canvas and grid size on window load
+    function initialize() {
+      resizeCanvas(); // Calculate canvas size
+      generateWorld(); // Generate world once everything is initialized
+    }
+
     // Resize canvas and recalculate grid
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -55,25 +61,17 @@
       rows = Math.floor(canvas.height / cellSize);
     }
 
-    // Trigger world generation on resize or button click
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      if (terrain.length > 0) { // Check if terrain is already generated
-        generateWorld();
-      }
-    });
-
     // Generate world when triggered by button click
     function generateWorld() {
-      resizeCanvas(); // Ensure canvas size is calculated before generating the world
-
+      resizeCanvas(); // Ensure canvas size is recalculated
       terrain.length = 0; // Clear previous terrain
+
       const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
           const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
-          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp the values between 0 and 1
+          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp values
         }
       }
       spawnPeople();
@@ -177,7 +175,7 @@
     }
 
     // Start the game loop after the world is generated
-    gameLoop();
+    window.onload = initialize;
   </script>
 </body>
 </html>
