@@ -29,140 +29,103 @@
     <button onclick="smite()">⚡ Smite</button>
     <button onclick="createLand()">🌍 Create Land</button>
     <button onclick="disaster()">🔥 Disaster</button>
-    <button onclick="generateWorld()">🌍 Generate World</button>
     <div>👥 Population: <span id="populationCount">0</span></div>
+    <button onclick="generateWorld()">Generate World</button>
   </div>
   <canvas id="world"></canvas>
 
-  <!-- Include Simplex Noise Library with defer to ensure it's loaded before usage -->
-  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@3.0.0/simplex-noise.min.js" defer></script>
-
+  <!-- Load SimplexNoise library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js" defer></script>
+  
   <script>
-    let simplex;  // Declare the simplex variable first
-
-    // Declare necessary variables globally
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
 
-    let cellSize = 4;
-    let cols, rows;  // These will be initialized later after canvas size is set
-    const terrain = [];
-    const people = [];
-    const villages = [];
-    const buildings = [];
+    let simplex;  // Declare global variable for SimplexNoise
+    let cols, rows, cellSize;
+    let terrain = [];
+    let people = [];
+    let villages = [];
+    let buildings = [];
 
-    // Function to initialize SimplexNoise
-    function initSimplexNoise() {
-      simplex = new SimplexNoise(Math.random);  // Initialize after the script has loaded
-    }
-
-    // Function to resize the canvas and calculate grid size
+    // Resize canvas and initialize parameters
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      cellSize = 4;
       cols = Math.floor(canvas.width / cellSize);
       rows = Math.floor(canvas.height / cellSize);
     }
 
-    // Function to generate a random world
+    // Initialize SimplexNoise instance
+    function initSimplexNoise() {
+      simplex = new SimplexNoise(Math.random);  // Initialize SimplexNoise with a random seed
+    }
+
+    // Generate terrain with noise
     function generateWorld() {
-      resizeCanvas();  // Ensure the canvas is resized first
-      if (!simplex) {
-        initSimplexNoise();  // Initialize SimplexNoise if it's not yet initialized
-      }
+      resizeCanvas();  // Ensure canvas size is set first
+      if (!simplex) initSimplexNoise();  // Initialize SimplexNoise if it's not already
 
-      terrain.length = 0;  // Reset terrain
+      terrain = [];  // Reset terrain
 
-      const scale = 0.05 + Math.random() * 0.05;  // Randomize scale for terrain generation
-
-      // Generate terrain based on simplex noise
+      const scale = 0.05 + Math.random() * 0.05;  // Randomize scale for terrain
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
           const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
-          terrain[y][x] = Math.max(0, Math.min(1, value));  // Clamp values to be between 0 and 1
+          terrain[y][x] = value;
         }
       }
 
-      spawnPeople();  // Spawn people after the world is generated
-      updatePopulationCount();  // Update population counter
-      drawWorld();  // Draw the world
+      spawnPeople();  // Spawn people after generating the world
+      updatePopulationCount();  // Update population count
+      drawWorld();  // Draw the world terrain
     }
 
-    // Function to get the color of a terrain block
-    function getTerrainColor(value) {
-      if (value < 0.2) return "#004488";  // Water
-      if (value < 0.3) return "#c2b280";  // Sand
-      if (value < 0.6) return "#228B22";  // Grass
-      if (value < 0.8) return "#888888";  // Rock
-      return "#aaaaaa";  // Mountain
+    // Update population count
+    function updatePopulationCount() {
+      document.getElementById("populationCount").textContent = people.length;
     }
 
-    // Check if a terrain spot is walkable (grass or better)
+    // Determine if a tile is walkable (not water)
     function isWalkable(x, y) {
-      return terrain[y] && terrain[y][x] >= 0.2;
+      return terrain[y][x] >= 0.2;
     }
 
-    // Spawn people at random walkable spots
+    // Spawn people randomly on walkable terrain
     function spawnPeople(count = 200) {
-      people.length = 0;  // Reset the people list
-
+      people = [];  // Reset people array
       for (let i = 0; i < count; i++) {
         let x, y;
         do {
           x = Math.floor(Math.random() * cols);
           y = Math.floor(Math.random() * rows);
-        } while (!isWalkable(x, y));  // Only spawn on walkable terrain
+        } while (!isWalkable(x, y));
         people.push({ x, y });
       }
-
-      updatePopulationCount();
     }
 
-    // Update population counter on UI
-    function updatePopulationCount() {
-      document.getElementById("populationCount").textContent = people.length;
-    }
+    // Move people randomly
+    function movePeople() {
+      for (let person of people) {
+        const dx = Math.floor(Math.random() * 3) - 1;
+        const dy = Math.floor(Math.random() * 3) - 1;
+        const nx = person.x + dx;
+        const ny = person.y + dy;
 
-    // Bless: Add special buildings (for example)
-    function bless() {
-      people.forEach(p => {
-        if (Math.random() < 0.1) {
-          buildings.push({ x: p.x, y: p.y, type: "blessed" });
+        if (
+          nx >= 0 && nx < cols &&
+          ny >= 0 && ny < rows &&
+          isWalkable(nx, ny)
+        ) {
+          person.x = nx;
+          person.y = ny;
         }
-      });
-    }
-
-    // Smite: Remove people from the world randomly
-    function smite() {
-      for (let i = 0; i < 30 && people.length > 0; i++) {
-        const index = Math.floor(Math.random() * people.length);
-        people.splice(index, 1);
-      }
-      updatePopulationCount();
-    }
-
-    // Create Land: Add more grass in random locations
-    function createLand() {
-      for (let i = 0; i < 50; i++) {
-        const x = Math.floor(Math.random() * cols);
-        const y = Math.floor(Math.random() * rows);
-        terrain[y][x] = 0.5;  // Make terrain grass
       }
     }
 
-    // Disaster: Turn people into water, making it impassable
-    function disaster() {
-      for (let i = 0; i < 50 && people.length > 0; i++) {
-        const index = Math.floor(Math.random() * people.length);
-        const p = people[index];
-        terrain[p.y][p.x] = 0.0;  // Turn terrain into water
-        people.splice(index, 1);
-      }
-      updatePopulationCount();
-    }
-
-    // Draw the terrain on canvas
+    // Draw the terrain
     function drawWorld() {
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
@@ -172,7 +135,16 @@
       }
     }
 
-    // Draw people as small red blocks
+    // Convert terrain value to color
+    function getTerrainColor(value) {
+      if (value < 0.2) return "#004488";     // Water
+      if (value < 0.3) return "#c2b280";     // Sand
+      if (value < 0.6) return "#228B22";     // Grass
+      if (value < 0.8) return "#888888";     // Rock
+      return "#aaaaaa";                     // Mountain
+    }
+
+    // Draw people as red squares
     function drawPeople() {
       for (let person of people) {
         ctx.fillStyle = "#ff0055";
@@ -180,14 +152,57 @@
       }
     }
 
-    // Main game loop
-    function gameLoop() {
-      drawPeople();
-      requestAnimationFrame(gameLoop);
+    // Bless function (optional feature)
+    function bless() {
+      people.forEach(p => {
+        if (Math.random() < 0.1) {
+          buildings.push({ x: p.x, y: p.y, type: "blessed" });
+        }
+      });
     }
 
-    // Start the game loop after the world is generated
-    window.onload = () => generateWorld();  // Generate world immediately on load
+    // Smite function (optional feature)
+    function smite() {
+      for (let i = 0; i < 30 && people.length > 0; i++) {
+        const index = Math.floor(Math.random() * people.length);
+        people.splice(index, 1);
+      }
+      updatePopulationCount();
+    }
+
+    // Create land (optional feature)
+    function createLand() {
+      for (let i = 0; i < 50; i++) {
+        const x = Math.floor(Math.random() * cols);
+        const y = Math.floor(Math.random() * rows);
+        terrain[y][x] = 0.5; // Make it grass
+      }
+    }
+
+    // Disaster function (optional feature)
+    function disaster() {
+      for (let i = 0; i < 50 && people.length > 0; i++) {
+        const index = Math.floor(Math.random() * people.length);
+        const p = people[index];
+        terrain[p.y][p.x] = 0.0; // Turn to water
+        people.splice(index, 1);
+      }
+      updatePopulationCount();
+    }
+
+    // Game loop (rendering every frame)
+    function gameLoop() {
+      movePeople();  // Move people each frame
+      drawWorld();  // Redraw world terrain
+      drawPeople();  // Redraw people
+      requestAnimationFrame(gameLoop);  // Call game loop again on next frame
+    }
+
+    // Start the world generation when the page loads
+    window.onload = () => {
+      generateWorld();
+      gameLoop();  // Start the game loop
+    };
   </script>
 </body>
 </html>
