@@ -29,7 +29,7 @@
     <button onclick="smite()">⚡ Smite</button>
     <button onclick="createLand()">🌍 Create Land</button>
     <button onclick="disaster()">🔥 Disaster</button>
-    <button onclick="generateWorld()">🌍 Generate World</button> <!-- New button for manual world generation -->
+    <button onclick="generateWorld()">🌍 Generate World</button> <!-- New button -->
     <div>👥 Population: <span id="populationCount">0</span></div>
   </div>
   <canvas id="world"></canvas>
@@ -39,27 +39,30 @@
     const canvas = document.getElementById("world");
     const ctx = canvas.getContext("2d");
 
+    let cols, rows, cellSize = 4;
+    const terrain = [];
+    const people = [];
+    const villages = [];
+    const buildings = [];
+    const simplex = new SimplexNoise(Math.random);
+
+    // Resize canvas and recalculate grid
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       cols = Math.floor(canvas.width / cellSize);
       rows = Math.floor(canvas.height / cellSize);
-      generateWorld(); // Ensure world is generated when resizing
     }
-    window.addEventListener('resize', resizeCanvas);
+
+    // Trigger world generation on resize or button click
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      generateWorld();
+    });
+
     resizeCanvas();
 
-    const cellSize = 4;
-    let cols = Math.floor(canvas.width / cellSize);
-    let rows = Math.floor(canvas.height / cellSize);
-
-    const terrain = [];
-    const people = [];
-    const villages = [];
-    const buildings = [];
-
-    const simplex = new SimplexNoise(Math.random);
-
+    // Terrain Color based on noise value
     function getTerrainColor(value) {
       if (value < 0.2) return "#004488";     // Water
       if (value < 0.3) return "#c2b280";     // Sand
@@ -68,23 +71,30 @@
       return "#aaaaaa";                     // Mountain
     }
 
+    // Generate random terrain using Simplex Noise
     function generateWorld() {
+      terrain.length = 0; // Clear previous terrain
       const scale = 0.05 + Math.random() * 0.05; // Randomize scale for variation
       for (let y = 0; y < rows; y++) {
         terrain[y] = [];
         for (let x = 0; x < cols; x++) {
           const value = simplex.noise2D(x * scale, y * scale) * 0.5 + 0.5;
-          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp the values
+          terrain[y][x] = Math.max(0, Math.min(1, value)); // Clamp the values between 0 and 1
         }
       }
-      spawnPeople(); // Spawn people after world generation
+      spawnPeople();
+      updatePopulationCount();
+      drawWorld();
     }
 
+    // Check if a terrain spot is walkable (grass or better)
     function isWalkable(x, y) {
-      return terrain[y][x] >= 0.2;
+      return terrain[y] && terrain[y][x] >= 0.2;
     }
 
+    // Spawn people at random walkable spots
     function spawnPeople(count = 200) {
+      people.length = 0; // Reset the people
       for (let i = 0; i < count; i++) {
         let x, y;
         do {
@@ -96,77 +106,12 @@
       updatePopulationCount();
     }
 
-    function movePeople() {
-      for (let person of people) {
-        const dx = Math.floor(Math.random() * 3) - 1;
-        const dy = Math.floor(Math.random() * 3) - 1;
-        const nx = person.x + dx;
-        const ny = person.y + dy;
-
-        if (
-          nx >= 0 && nx < cols &&
-          ny >= 0 && ny < rows &&
-          isWalkable(nx, ny)
-        ) {
-          person.x = nx;
-          person.y = ny;
-
-          if (!inVillage(person) && nearbyPeopleCount(nx, ny) > 6) {
-            formVillage(nx, ny);
-          }
-        }
-      }
-    }
-
+    // Update population counter
     function updatePopulationCount() {
       document.getElementById("populationCount").textContent = people.length;
     }
 
-    function inVillage(p) {
-      return villages.some(v => Math.abs(v.x - p.x) < 5 && Math.abs(v.y - p.y) < 5);
-    }
-
-    function nearbyPeopleCount(x, y) {
-      return people.filter(p => Math.abs(p.x - x) <= 2 && Math.abs(p.y - y) <= 2).length;
-    }
-
-    function formVillage(x, y) {
-      const name = "Village " + (villages.length + 1);
-      villages.push({ x, y, name });
-      buildings.push({ x, y, type: "hut" });
-    }
-
-    function drawWorld() {
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          ctx.fillStyle = getTerrainColor(terrain[y][x]);
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-
-    function drawPeople() {
-      for (let person of people) {
-        ctx.fillStyle = "#ff0055";
-        ctx.fillRect(person.x * cellSize + 1, person.y * cellSize + 1, 2, 2);
-      }
-    }
-
-    function drawVillages() {
-      ctx.font = "10px sans-serif";
-      ctx.fillStyle = "white";
-      for (let v of villages) {
-        ctx.fillText(v.name, v.x * cellSize, v.y * cellSize);
-      }
-    }
-
-    function drawBuildings() {
-      for (let b of buildings) {
-        ctx.fillStyle = b.type === "hut" ? "#964B00" : "#222";
-        ctx.fillRect(b.x * cellSize + 1, b.y * cellSize + 1, 3, 3);
-      }
-    }
-
+    // Bless: add special buildings (for example)
     function bless() {
       people.forEach(p => {
         if (Math.random() < 0.1) {
@@ -175,6 +120,7 @@
       });
     }
 
+    // Smite: remove people from the world randomly
     function smite() {
       for (let i = 0; i < 30 && people.length > 0; i++) {
         const index = Math.floor(Math.random() * people.length);
@@ -183,14 +129,16 @@
       updatePopulationCount();
     }
 
+    // Create Land: add more grass in random locations
     function createLand() {
       for (let i = 0; i < 50; i++) {
         const x = Math.floor(Math.random() * cols);
         const y = Math.floor(Math.random() * rows);
-        terrain[y][x] = 0.5; // Make it grass
+        terrain[y][x] = 0.5; // Turn terrain into grass
       }
     }
 
+    // Disaster: turn people into water, making it impassable
     function disaster() {
       for (let i = 0; i < 50 && people.length > 0; i++) {
         const index = Math.floor(Math.random() * people.length);
@@ -201,15 +149,31 @@
       updatePopulationCount();
     }
 
+    // Draw the terrain on canvas
+    function drawWorld() {
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          ctx.fillStyle = getTerrainColor(terrain[y][x]);
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    // Draw people as small red blocks
+    function drawPeople() {
+      for (let person of people) {
+        ctx.fillStyle = "#ff0055";
+        ctx.fillRect(person.x * cellSize + 1, person.y * cellSize + 1, 2, 2);
+      }
+    }
+
+    // Main game loop
     function gameLoop() {
-      drawWorld();
-      movePeople();
-      drawBuildings();
       drawPeople();
-      drawVillages();
       requestAnimationFrame(gameLoop);
     }
 
+    // Start the game loop after the world is generated
     gameLoop();
   </script>
 </body>
