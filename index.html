@@ -82,7 +82,8 @@
         }
       }
 
-      spawnPeople();  // Spawn people after generating the world
+      generateVillages();  // Generate villages after terrain generation
+      spawnPeopleInVillages();  // Spawn people in villages
       updatePopulationCount();  // Update population count
       drawWorld();  // Draw the world terrain
     }
@@ -97,35 +98,53 @@
       return terrain[y][x] >= 0.2;
     }
 
-    // Spawn people randomly on walkable terrain
-    function spawnPeople(count = 200) {
-      people = [];  // Reset people array
-      for (let i = 0; i < count; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * cols);
-          y = Math.floor(Math.random() * rows);
-        } while (!isWalkable(x, y));
-        people.push({ x, y });
+    // Generate villages
+    function generateVillages() {
+      villages = [];  // Clear any existing villages
+      const numberOfVillages = Math.floor(Math.random() * 5) + 3; // Random number of villages (3 to 7)
+      
+      for (let i = 0; i < numberOfVillages; i++) {
+        const village = createVillage();
+        villages.push(village);
       }
     }
 
-    // Move people randomly
-    function movePeople() {
-      for (let person of people) {
-        const dx = Math.floor(Math.random() * 3) - 1;
-        const dy = Math.floor(Math.random() * 3) - 1;
-        const nx = person.x + dx;
-        const ny = person.y + dy;
+    // Create a single village with clumped buildings
+    function createVillage() {
+      const xStart = Math.floor(Math.random() * (cols - 20));  // Random starting position
+      const yStart = Math.floor(Math.random() * (rows - 20));
+      const village = {
+        name: "Village " + Math.floor(Math.random() * 1000),
+        x: xStart,
+        y: yStart,
+        buildings: []
+      };
 
-        if (
-          nx >= 0 && nx < cols &&
-          ny >= 0 && ny < rows &&
-          isWalkable(nx, ny)
-        ) {
-          person.x = nx;
-          person.y = ny;
+      // Create buildings near the village center
+      for (let i = 0; i < 10; i++) {  // Create 10 buildings for this village
+        const xOffset = Math.floor(Math.random() * 5) - 2;  // Randomize offset for building position
+        const yOffset = Math.floor(Math.random() * 5) - 2;
+        const x = village.x + xOffset;
+        const y = village.y + yOffset;
+
+        if (isWalkable(x, y)) {
+          village.buildings.push({ x, y });
+          terrain[y][x] = 0.7; // Set the terrain to a "building" spot
         }
+      }
+
+      return village;
+    }
+
+    // Spawn people in the villages
+    function spawnPeopleInVillages(count = 200) {
+      people = [];  // Reset people array
+
+      // Distribute people to villages
+      for (let i = 0; i < count; i++) {
+        const village = villages[Math.floor(Math.random() * villages.length)];
+        const building = village.buildings[Math.floor(Math.random() * village.buildings.length)];
+        people.push({ x: building.x, y: building.y, village: village.name });
       }
     }
 
@@ -148,11 +167,23 @@
       return "#aaaaaa";                     // Mountain
     }
 
-    // Draw people as red squares
+    // Draw people as larger red squares
     function drawPeople() {
+      const personSize = 5;  // Increased size for people
       for (let person of people) {
         ctx.fillStyle = "#ff0055";
-        ctx.fillRect(person.x * cellSize + 1, person.y * cellSize + 1, 2, 2);
+        ctx.fillRect(person.x * cellSize + 1, person.y * cellSize + 1, personSize, personSize);
+      }
+    }
+
+    // Draw buildings as larger brown squares
+    function drawBuildings() {
+      const buildingSize = 8;  // Increased size for buildings
+      for (let village of villages) {
+        for (let building of village.buildings) {
+          ctx.fillStyle = "#8B4513";  // Brown color for buildings
+          ctx.fillRect(building.x * cellSize, building.y * cellSize, buildingSize, buildingSize);
+        }
       }
     }
 
@@ -196,9 +227,9 @@
 
     // Game loop (rendering every frame)
     function gameLoop() {
-      movePeople();  // Move people each frame
       drawWorld();  // Redraw world terrain
-      drawPeople();  // Redraw people
+      drawBuildings();  // Draw buildings
+      drawPeople();  // Draw people
       requestAnimationFrame(gameLoop);  // Call game loop again on next frame
     }
 
